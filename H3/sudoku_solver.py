@@ -6,17 +6,17 @@ def filehelper(filename: str):
     return [[int(i) if i != '-' else None for i in line.strip().split(' ')] for line in all_lines]
 
 
-class SudokuConstraint(Constraint[tuple[int, int], list[tuple[int, int]]]):
-    def __init__(self, cell: tuple[int, int], restricting_cells: list[tuple[int, int]]) -> None:
-        super().__init__([cell] + restricting_cells)
+class SudokuConstraint(Constraint[tuple[int, int], tuple[int, int]]):
+    def __init__(self, cell: tuple[int, int], restricting_cell: tuple[int, int]) -> None:
+        super().__init__([cell, restricting_cell])
+        self.__cell = cell
+        self.__restricting_cell = restricting_cell
 
     def satisfied(self, assignment: dict[tuple[int, int], int]) -> bool:
-        r, v = self.variables[0]
-        value_assigned = assignment[self.variables[0]]
-        for cell in self.variables[1:]:
-            if assignment[cell] == value_assigned:
-                return False    # value conflict!
-        return True             # fall through: no conflict
+        if self.__cell in assignment and self.__restricting_cell in assignment:
+            return assignment[self.__cell] != assignment[self.__restricting_cell]
+        else:
+            return True             # fall through: no conflict
 
 
 class Sudoku:
@@ -35,6 +35,10 @@ class Sudoku:
 
     def __str__(self):
         s = [''.join([str(c) if c is not None else "-" for c in r]) for r in self.sudoku]
+        for i in range(self.__dim):
+            s[i] = '|' + s[i][0:3] + '||' + s[i][3:6] + '||' + s[i][6:] + '|'
+        s.insert(6, "|---|"*3)
+        s.insert(3,"|---|"*3)
         return '\n'.join(s)
 
     def generate_variables(self) -> None:
@@ -63,7 +67,7 @@ class Sudoku:
                 used_values = list(set([self.sudoku[cell[0]][cell[1]] for cell in self.generate_restricting_cells(var) if self.sudoku[cell[0]][cell[1]] is not None]))
                 domains[var] = list(all_options - set(used_values) - {None})
             else:                                           # specified in setup: must restrict to this value only
-                domains[var] = self.sudoku[row][col]
+                domains[var] = [self.sudoku[row][col]]
         self.__domains = domains
 
     def setup_csp(self):
@@ -71,13 +75,23 @@ class Sudoku:
         self.generate_domains()
         self.__csp = CSP(self.__variables, self.__domains)
         for cell in self.__domains.keys():
-            row, col = cell
-            restrictions = sorted(self.generate_restricting_cells(cell))
-            self.__csp.add_constraint(SudokuConstraint(cell, restrictions))
+            for restricting_cell in sorted(self.generate_restricting_cells(cell)):
+                self.__csp.add_constraint(SudokuConstraint(cell, restricting_cell))
+
+    def solve(self):
+        solution = self.__csp.backtracking_search()
+        if solution is not None:
+            for cell, value in solution.items():
+                self.sudoku[cell[0]][cell[1]] = value
 
 
 if __name__ == "__main__":
     lines: list[tuple[int, int]] = filehelper("test_sudoku.txt")
     sudoku: Sudoku = Sudoku(lines)
     sudoku.setup_csp()
+    print("Inital grid")
+    print(sudoku)
+    sudoku.solve()
+    print()
+    print("Solved Sudoku")
     print(sudoku)
