@@ -115,7 +115,7 @@ class Sudoku:
 
 if __name__ == "__main__":
     start = time.process_time()
-    lines: list[tuple[int, int]] = filehelper("sudokuonline_20230518.txt")
+    lines: list[tuple[int, int]] = filehelper("classic-computer-science-problems-in-python/H3/sudokuonline_20230518.txt")
     sudoku: Sudoku = Sudoku(lines)
     sudoku.setup_csp()
     end_setup = time.process_time()
