@@ -86,7 +86,7 @@ class Sudoku:
 
 
 if __name__ == "__main__":
-    lines: list[tuple[int, int]] = filehelper("test_sudoku.txt")
+    lines: list[tuple[int, int]] = filehelper("sudokuonline_20230518.txt")
     sudoku: Sudoku = Sudoku(lines)
     sudoku.setup_csp()
     print("Inital grid")
